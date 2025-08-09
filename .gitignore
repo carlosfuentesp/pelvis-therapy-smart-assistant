@@ -5,4 +5,81 @@ __pycache__/
 .pytest_cache/
 *.pyc
 .env
+# Terraform directories y archivos de estado
+**/.terraform/*
+**/.terraform.lock.hcl
+
+# State files (NUNCA versionar estos archivos)
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Variable files con datos sensibles
+*.tfvars
+*.tfvars.json
+# Excepción para archivos de ejemplo (descomenta si los usas)
+# !*.tfvars.example
+# !terraform.tfvars.example
+
+# Plan files
+*.tfplan
+*tfplan*
+
+# Override files para configuraciones locales
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Crash logs
+crash.log
+crash.*.log
+
+# CLI configuration files
+.terraformrc
+terraform.rc
+
+# Archivos específicos de tu estructura
+# Archivos de configuración local para cada ambiente
+envs/dev/terraform.tfvars
+envs/prod/terraform.tfvars
+envs/staging/terraform.tfvars
+
+# Archivos temporales y backups
+*.tmp
+*.backup
+*.bak
+
+# IDE y editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+
+# Archivos de certificados (si los generas localmente)
+*.pem
+*.key
+*.crt
+*.p12
+
+# Archivos de configuración específicos del proyecto
+.env
+.env.local
+.env.*.local
+
+# Directorios de dependencias
+node_modules/
+.npm/
