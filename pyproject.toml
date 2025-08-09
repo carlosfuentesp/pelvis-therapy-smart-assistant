@@ -1,0 +1,12 @@
+[project]
+name = "pelvis-therapy-whatsapp-assistant"
+version = "0.1.0"
+description = "MVP multiagente (WhatsApp) con AWS Bedrock AgentCore + Strands"
+authors = [{ name = "Pelvis Therapy" }]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []  # se definirán en la siguiente iteración
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"

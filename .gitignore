@@ -1,0 +1,26 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.mypy_cache/
+.pytest_cache/
+
+# Mac / OS
+.DS_Store
+
+# Editor/Tools
+.idea/
+.vscode/
+.env
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.crash.log
+
+# Node (si en el futuro se usa para CI/CD o tooling)
+node_modules/

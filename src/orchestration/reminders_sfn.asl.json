@@ -1,0 +1,9 @@
+{
+  "Comment": "Recordatorios T-1 día y reintento a las 4 horas (placeholder)",
+  "StartAt": "Placeholder",
+  "States": {
+    "Placeholder": {
+      "Type": "Succeed"
+    }
+  }
+}
