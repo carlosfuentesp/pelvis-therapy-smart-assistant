@@ -44,8 +44,7 @@ module "lambda" {
   source         = "../../modules/lambda_function"
   project_prefix = var.project_prefix
   function_name  = "router-hello"
-  source_file    = "${path.root}/../../../../app/runtime/handler_lambda.py"
-  # Env vars para que el handler tenga referencias (las usaremos luego)
+  source_file    = abspath("${path.root}/../../../../app/runtime/handler_lambda.py")
   env_vars = {
     DDB_TABLE   = module.ddb.table_name
     FAQ_BUCKET  = module.s3.bucket_name
@@ -60,4 +59,42 @@ module "api" {
   project_prefix = var.project_prefix
   lambda_arn     = module.lambda.lambda_arn
   tags           = local.tags
+}
+
+module "lambda_wa" {
+  source         = "../../modules/lambda_function"
+  project_prefix = var.project_prefix
+  function_name  = "wa-events-handler"
+  handler        = "wa_events_handler.handler"
+  source_file    = abspath("${path.root}/../../../../app/runtime/wa_events_handler.py")
+  env_vars = {
+    OWNER_TOPIC = module.sns.owner_sms_topic_arn
+  }
+  tags = local.tags
+}
+
+resource "aws_lambda_permission" "allow_sns_wa" {
+  statement_id  = "AllowSNSWAInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = module.lambda_wa.lambda_name
+  principal     = "sns.amazonaws.com"
+  source_arn    = module.sns.wa_events_topic_arn
+}
+
+resource "aws_sns_topic_subscription" "wa_events_to_lambda" {
+  topic_arn = module.sns.wa_events_topic_arn
+  protocol  = "lambda"
+  endpoint  = module.lambda_wa.lambda_arn
+}
+
+module "lambda_reminder" {
+  source         = "../../modules/lambda_function"
+  project_prefix = var.project_prefix
+  function_name  = "reminder-dispatcher"
+  handler        = "reminder_dispatcher.handler"
+  source_file    = abspath("${path.root}/../../../../app/runtime/reminder_dispatcher.py")
+  env_vars = {
+    OWNER_TOPIC = module.sns.owner_sms_topic_arn
+  }
+  tags = local.tags
 }
