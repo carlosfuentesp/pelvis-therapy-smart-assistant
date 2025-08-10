@@ -14,3 +14,8 @@ variable "owner_phone_e164" {
   default     = ""
   description = "Número E.164 de la propietaria (+593XXXXXXXXX)"
 }
+
+variable "owner_wa_e164" {
+  type    = string
+  default = "+5939XXXXXXXX"
+}
