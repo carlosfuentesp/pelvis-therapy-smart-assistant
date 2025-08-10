@@ -1,19 +1,26 @@
-variable "project_prefix" { type = string }
-variable "function_name"  { type = string }
+variable "project_prefix" {
+  type = string
+}
+
+variable "function_name" {
+  type = string
+}
 
 variable "runtime" {
   type    = string
   default = "python3.12"
 }
 
-variable "handler" {
+# Pasado desde envs/dev: ruta a la carpeta "app" (zip completa)
+variable "source_dir" {
   type    = string
-  default = "handler_lambda.handler"
+  default = ""
 }
 
-# ← sin default (obligatorio)
-variable "source_file" {
-  type = string
+# Handler debe incluir el prefijo "app/..."
+variable "handler" {
+  type    = string
+  default = "app/runtime/handler_lambda.handler"
 }
 
 variable "env_vars" {
@@ -21,11 +28,13 @@ variable "env_vars" {
   default = {}
 }
 
-variable "tags" { type = map(string) }
+variable "tags" {
+  type = map(string)
+}
 
 data "archive_file" "zip" {
   type        = "zip"
-  source_file = var.source_file
+  source_dir  = var.source_dir
   output_path = "${path.module}/lambda.zip"
 }
 
@@ -48,32 +57,36 @@ resource "aws_iam_role" "lambda_role" {
 
 data "aws_iam_policy_document" "lambda_inline" {
   statement {
-    sid    = "Logs"
-    effect = "Allow"
-    actions = ["logs:CreateLogGroup","logs:CreateLogStream","logs:PutLogEvents"]
+    sid     = "Logs"
+    effect  = "Allow"
+    actions = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
     resources = ["arn:aws:logs:*:*:*"]
   }
+
   statement {
-    sid    = "DDBBasic"
-    effect = "Allow"
+    sid     = "DDBBasic"
+    effect  = "Allow"
     actions = ["dynamodb:GetItem","dynamodb:PutItem","dynamodb:UpdateItem","dynamodb:DeleteItem","dynamodb:Query"]
     resources = ["*"]
   }
+
   statement {
-    sid    = "S3ReadFAQ"
-    effect = "Allow"
+    sid     = "S3ReadFAQ"
+    effect  = "Allow"
     actions = ["s3:GetObject","s3:ListBucket"]
     resources = ["*"]
   }
+
   statement {
-    sid    = "SecretsRead"
-    effect = "Allow"
+    sid     = "SecretsRead"
+    effect  = "Allow"
     actions = ["secretsmanager:GetSecretValue"]
     resources = ["*"]
   }
+
   statement {
-    sid    = "SNSPublish"
-    effect = "Allow"
+    sid     = "SNSPublish"
+    effect  = "Allow"
     actions = ["sns:Publish"]
     resources = ["*"]
   }
@@ -94,9 +107,17 @@ resource "aws_lambda_function" "this" {
   handler          = var.handler
   timeout          = 10
 
-  environment { variables = var.env_vars }
+  environment {
+    variables = var.env_vars
+  }
+
   tags = var.tags
 }
 
-output "lambda_arn"  { value = aws_lambda_function.this.arn }
-output "lambda_name" { value = aws_lambda_function.this.function_name }
+output "lambda_arn" {
+  value = aws_lambda_function.this.arn
+}
+
+output "lambda_name" {
+  value = aws_lambda_function.this.function_name
+}

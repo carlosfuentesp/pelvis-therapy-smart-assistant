@@ -1,30 +1,18 @@
 import json
 import logging
-import os
 
-import boto3
+from tools.whatsapp_owner import send_owner_template  # <-- sin app.
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-SNS_OWNER_TOPIC_ARN = os.environ.get("OWNER_TOPIC", "")
-
-sns = boto3.client("sns")
-
 
 def handler(event, context):
-    """
-    Espera payload con:
-    {
-      "appointment_id": "...",
-      "patient_phone_e164": "+5939...",
-      "action": "first_reminder" | "second_reminder" | "owner_escalation"
-    }
-    """
     logger.info("Reminder event: %s", json.dumps(event))
-    if SNS_OWNER_TOPIC_ARN:
-        sns.publish(
-            TopicArn=SNS_OWNER_TOPIC_ARN,
-            Message=f"[Pelvis Therapy] Scheduler ejecutó acción: {json.dumps(event)}",
-        )
+    action = (event.get("action") or "unknown").replace("_", " ")
+    patient = event.get("patient_phone_e164", "paciente")
+    appt_id = event.get("appointment_id", "N/A")
+    send_owner_template(
+        paciente=patient, fecha_hora=f"cita {appt_id}", estado=f"recordatorio {action}"
+    )
     return {"ok": True}

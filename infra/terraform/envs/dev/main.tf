@@ -28,30 +28,17 @@ module "google_sa" {
 }
 
 module "sns" {
-  source              = "../../modules/sns"
-  project_prefix      = var.project_prefix
-  sms_owner_phone_e164= var.owner_phone_e164
-  tags                = local.tags
+  source               = "../../modules/sns"
+  project_prefix       = var.project_prefix
+  tags                 = local.tags
+  enable_owner_sms     = false
+  sms_owner_phone_e164 = "" # ignorado cuando enable_owner_sms = false
 }
 
 module "scheduler" {
   source         = "../../modules/eventbridge_scheduler"
   project_prefix = var.project_prefix
   tags           = local.tags
-}
-
-module "lambda" {
-  source         = "../../modules/lambda_function"
-  project_prefix = var.project_prefix
-  function_name  = "router-hello"
-  source_file    = abspath("${path.root}/../../../../app/runtime/handler_lambda.py")
-  env_vars = {
-    DDB_TABLE   = module.ddb.table_name
-    FAQ_BUCKET  = module.s3.bucket_name
-    OWNER_TOPIC = module.sns.owner_sms_topic_arn
-    GOOGLE_SA_SECRET_ARN = module.google_sa.secret_arn
-  }
-  tags = local.tags
 }
 
 module "api" {
@@ -61,17 +48,6 @@ module "api" {
   tags           = local.tags
 }
 
-module "lambda_wa" {
-  source         = "../../modules/lambda_function"
-  project_prefix = var.project_prefix
-  function_name  = "wa-events-handler"
-  handler        = "wa_events_handler.handler"
-  source_file    = abspath("${path.root}/../../../../app/runtime/wa_events_handler.py")
-  env_vars = {
-    OWNER_TOPIC = module.sns.owner_sms_topic_arn
-  }
-  tags = local.tags
-}
 
 resource "aws_lambda_permission" "allow_sns_wa" {
   statement_id  = "AllowSNSWAInvoke"
@@ -87,14 +63,45 @@ resource "aws_sns_topic_subscription" "wa_events_to_lambda" {
   endpoint  = module.lambda_wa.lambda_arn
 }
 
+module "lambda" {
+  source         = "../../modules/lambda_function"
+  project_prefix = var.project_prefix
+  function_name  = "router-hello"
+  source_dir     = "${path.root}/../../../../app"
+  handler        = "runtime/handler_lambda.handler" # <-- antes app/runtime/...
+  env_vars = {
+    DDB_TABLE  = module.ddb.table_name
+    FAQ_BUCKET = module.s3.bucket_name
+  }
+  tags = local.tags
+}
+
+module "lambda_wa" {
+  source         = "../../modules/lambda_function"
+  project_prefix = var.project_prefix
+  function_name  = "wa-events-handler"
+  source_dir     = "${path.root}/../../../../app"
+  handler        = "runtime/wa_events_handler.handler" # <-- sin app/
+  env_vars = {
+    OWNER_WA_E164       = var.owner_wa_e164
+    META_WA_SECRET_NAME = "pelvis/wa/meta-owner"
+    OWNER_WA_TEMPLATE   = "owner_alert_v2"
+    OWNER_WA_LANG       = "es_EC"
+  }
+  tags = local.tags
+}
+
 module "lambda_reminder" {
   source         = "../../modules/lambda_function"
   project_prefix = var.project_prefix
   function_name  = "reminder-dispatcher"
-  handler        = "reminder_dispatcher.handler"
-  source_file    = abspath("${path.root}/../../../../app/runtime/reminder_dispatcher.py")
+  source_dir     = "${path.root}/../../../../app"
+  handler        = "runtime/reminder_dispatcher.handler" # <-- sin app/
   env_vars = {
-    OWNER_TOPIC = module.sns.owner_sms_topic_arn
+    OWNER_WA_E164       = var.owner_wa_e164
+    META_WA_SECRET_NAME = "pelvis/wa/meta-owner"
+    OWNER_WA_TEMPLATE   = "owner_alert_v2"
+    OWNER_WA_LANG       = "es_EC"
   }
   tags = local.tags
 }
