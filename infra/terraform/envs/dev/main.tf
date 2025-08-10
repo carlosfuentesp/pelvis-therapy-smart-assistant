@@ -44,8 +44,9 @@ module "scheduler" {
 module "api" {
   source         = "../../modules/api_http"
   project_prefix = var.project_prefix
-  lambda_arn     = module.lambda.lambda_arn
+  lambda_arn     = module.lambda_meta.lambda_arn
   tags           = local.tags
+  routes         = ["GET /webhook", "POST /webhook"] # ← importante
 }
 
 
@@ -83,6 +84,7 @@ module "lambda_wa" {
   source_dir     = "${path.root}/../../../../app"
   handler        = "runtime/wa_events_handler.handler" # <-- sin app/
   env_vars = {
+    VERIFY_TOKEN        = "PT_VERIFY_DEV" # cámbialo si quieres
     OWNER_WA_E164       = var.owner_wa_e164
     META_WA_SECRET_NAME = "pelvis/wa/meta-owner"
     OWNER_WA_TEMPLATE   = "owner_alert_v2"
@@ -100,7 +102,23 @@ module "lambda_reminder" {
   env_vars = {
     OWNER_WA_E164       = var.owner_wa_e164
     META_WA_SECRET_NAME = "pelvis/wa/meta-owner"
-    OWNER_WA_TEMPLATE   = "owner_alert_v2"
+    OWNER_WA_TEMPLATE   = "owner_alert"
+    OWNER_WA_LANG       = "es_EC"
+  }
+  tags = local.tags
+}
+
+module "lambda_meta" {
+  source         = "../../modules/lambda_function"
+  project_prefix = var.project_prefix
+  function_name  = "meta-webhook"
+  source_dir     = "${path.root}/../../../../app"
+  handler        = "runtime/meta_webhook_handler.handler"
+  env_vars = {
+    VERIFY_TOKEN        = "PT_VERIFY_DEV" # cámbialo si quieres
+    OWNER_WA_E164       = var.owner_wa_e164
+    META_WA_SECRET_NAME = "pelvis/wa/meta-owner"
+    OWNER_WA_TEMPLATE   = "owner_alert"
     OWNER_WA_LANG       = "es_EC"
   }
   tags = local.tags

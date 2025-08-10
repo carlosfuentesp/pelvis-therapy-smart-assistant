@@ -1,6 +1,10 @@
 variable "project_prefix" { type = string }
 variable "lambda_arn"     { type = string }
 variable "tags"           { type = map(string) }
+variable "routes" {
+  type    = list(string)
+  default = ["POST /webhook"]
+}
 
 resource "aws_apigatewayv2_api" "http" {
   name          = "${var.project_prefix}-http"
@@ -23,14 +27,13 @@ resource "aws_apigatewayv2_integration" "lambda" {
   payload_format_version = "2.0"
 }
 
-# Ruta de webhook (luego la conectaremos a WhatsApp/SNS si decides usar API, por ahora hello)
-resource "aws_apigatewayv2_route" "any_webhook" {
+resource "aws_apigatewayv2_route" "routes" {
+  for_each  = toset(var.routes)
   api_id    = aws_apigatewayv2_api.http.id
-  route_key = "POST /webhook"
+  route_key = each.value
   target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
 }
 
-# Permiso para que API Gateway invoque Lambda
 resource "aws_lambda_permission" "allow_apigw" {
   statement_id  = "AllowAPIGwInvoke"
   action        = "lambda:InvokeFunction"
