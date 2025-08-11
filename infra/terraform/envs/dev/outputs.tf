@@ -6,3 +6,4 @@ output "owner_sms_topic" { value = module.sns.owner_sms_topic_arn }
 output "http_api_endpoint" { value = module.api.http_api_endpoint }
 output "lambda_name" { value = module.lambda.lambda_name }
 output "scheduler_role" { value = module.scheduler.scheduler_role_arn }
+output "layers_bucket_name" { value = aws_s3_bucket.layers.bucket }

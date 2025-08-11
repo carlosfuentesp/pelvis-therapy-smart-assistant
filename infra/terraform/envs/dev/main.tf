@@ -151,19 +151,19 @@ module "lambda_scheduler" {
 }
 
 module "layer_google" {
-  source         = "../../modules/lambda_layer"
-  layer_name     = "${var.project_prefix}-google-deps"
-  source_dir     = "${path.root}/../../../../layers/google"
-  s3_bucket_name = aws_s3_bucket.layers.bucket # <- pasa el nombre
-  tags           = local.tags
+  source          = "../../modules/lambda_layer"
+  layer_name      = "${var.project_prefix}-google-deps"
+  source_zip_path = abspath("${path.root}/../../../../tmp-google.zip")
+  s3_bucket_name  = aws_s3_bucket.layers.bucket
+  tags            = local.tags
 }
 
 module "layer_agents" {
-  source         = "../../modules/lambda_layer"
-  layer_name     = "${var.project_prefix}-agents-deps"
-  source_dir     = "${path.root}/../../../../layers/agents"
-  s3_bucket_name = aws_s3_bucket.layers.bucket # <- pasa el nombre
-  tags           = local.tags
+  source          = "../../modules/lambda_layer"
+  layer_name      = "${var.project_prefix}-agents-deps"
+  source_zip_path = abspath("${path.root}/../../../../tmp-agents.zip")
+  s3_bucket_name  = aws_s3_bucket.layers.bucket
+  tags            = local.tags
 }
 
 module "lambda_appts" {
