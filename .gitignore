@@ -74,6 +74,7 @@ Thumbs.db
 *.key
 *.crt
 *.p12
+*.zip
 
 # Archivos de configuración específicos del proyecto
 .env
@@ -86,5 +87,7 @@ node_modules/
 
 layers/google/python/**
 layers/google/layer.zip
+layers/agents/python/**
+layers/agents/layer.zip
 
 script.txt
