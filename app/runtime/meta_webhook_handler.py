@@ -7,6 +7,7 @@ import os
 import boto3
 from boto3.dynamodb.conditions import Key
 from tools.whatsapp_owner import send_owner_template, send_text
+from agents.router import handle_message
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -154,7 +155,15 @@ def handler(event, context):
                     ok, appt = _mark_confirmed_and_cancel(user_e164)
                     if ok:
                         try:
-                            send_text(user_e164, "¡Gracias! Tu cita ha sido confirmada ✅")
+                            try:
+                                reply = handle_message(text)
+                                send_text(user_e164, reply)
+                            except Exception:
+                                logger.exception("Router failed")
+                                send_text(
+                                    user_e164,
+                                    "¡Hola! Soy el asistente de Pelvis Therapy. ¿En qué te ayudo?",
+                                )
                             # Aviso opcional a propietaria
                             send_owner_template(
                                 paciente=user_e164,

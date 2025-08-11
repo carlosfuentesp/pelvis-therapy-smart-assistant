@@ -1,0 +1,3 @@
+strands-agents==1.*
+bedrock-agentcore==0.*
+PyYAML==6.*
