@@ -86,3 +86,5 @@ node_modules/
 
 layers/google/python/**
 layers/google/layer.zip
+
+script.txt
