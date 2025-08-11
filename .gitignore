@@ -83,3 +83,6 @@ Thumbs.db
 # Directorios de dependencias
 node_modules/
 .npm/
+
+layers/google/python/**
+layers/google/layer.zip

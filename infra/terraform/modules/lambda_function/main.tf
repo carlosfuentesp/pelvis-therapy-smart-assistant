@@ -32,6 +32,11 @@ variable "tags" {
   type = map(string)
 }
 
+variable "layers" {
+  type    = list(string)
+  default = []
+}
+
 data "archive_file" "zip" {
   type        = "zip"
   source_dir  = var.source_dir
@@ -119,6 +124,7 @@ resource "aws_lambda_function" "this" {
   runtime          = var.runtime
   handler          = var.handler
   timeout          = 10
+  layers           = var.layers
 
   environment {
     variables = var.env_vars
