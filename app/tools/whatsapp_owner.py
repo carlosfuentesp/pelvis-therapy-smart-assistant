@@ -90,3 +90,40 @@ def send_text(to_e164: str, text: str) -> dict:
         "text": {"preview_url": False, "body": text[:4000]},
     }
     return _post_messages(payload)
+
+
+def send_patient_reminder(
+    to_e164: str,
+    paciente: str,
+    fecha_hora: str,
+    confirmar_texto: str,
+    template_name: str = None,
+    lang_code: str = None,
+) -> dict:
+    creds_lang = lang_code or LANG_CODE
+    tname = template_name or "patient_reminder"
+    to = to_e164[1:] if to_e164.startswith("+") else to_e164
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": to,
+        "type": "template",
+        "template": {
+            "name": tname,
+            "language": {"code": creds_lang},
+            "components": [
+                {
+                    "type": "body",
+                    "parameters": [
+                        {"type": "text", "text": paciente, "parameter_name": "paciente"},
+                        {"type": "text", "text": fecha_hora, "parameter_name": "fecha_hora"},
+                        {
+                            "type": "text",
+                            "text": confirmar_texto,
+                            "parameter_name": "confirmar_texto",
+                        },
+                    ],
+                }
+            ],
+        },
+    }
+    return _post_messages(payload)

@@ -22,6 +22,24 @@ resource "aws_dynamodb_table" "this" {
     enabled        = true
   }
 
+  # Nuevos atributos para el GSI
+  attribute {
+    name = "gsi1pk"
+    type = "S"
+  }
+  attribute {
+    name = "gsi1sk"
+    type = "S"
+  }
+
+  # GSI para buscar próximas citas por paciente
+  global_secondary_index {
+    name            = "gsi1"
+    hash_key        = "gsi1pk"   # PATIENT#+5939...
+    range_key       = "gsi1sk"   # ISO de la cita (UTC)
+    projection_type = "ALL"
+  }
+
   point_in_time_recovery {
     enabled = true
   }

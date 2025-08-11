@@ -90,6 +90,19 @@ data "aws_iam_policy_document" "lambda_inline" {
     actions = ["sns:Publish"]
     resources = ["*"]
   }
+
+  statement {
+    sid     = "Scheduler"
+    effect  = "Allow"
+    actions = [
+      "scheduler:CreateSchedule",
+      "scheduler:UpdateSchedule",
+      "scheduler:DeleteSchedule",
+      "scheduler:GetSchedule",
+      "iam:PassRole"
+    ]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_role_policy" "lambda_policy" {

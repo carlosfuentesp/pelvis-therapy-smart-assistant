@@ -100,6 +100,7 @@ module "lambda_reminder" {
   source_dir     = "${path.root}/../../../../app"
   handler        = "runtime/reminder_dispatcher.handler" # <-- sin app/
   env_vars = {
+    DDB_TABLE           = module.ddb.table_name
     OWNER_WA_E164       = var.owner_wa_e164
     META_WA_SECRET_NAME = "pelvis/wa/meta-owner"
     OWNER_WA_TEMPLATE   = "owner_alert"
@@ -115,6 +116,7 @@ module "lambda_meta" {
   source_dir     = "${path.root}/../../../../app"
   handler        = "runtime/meta_webhook_handler.handler"
   env_vars = {
+    DDB_TABLE           = module.ddb.table_name
     VERIFY_TOKEN        = "PT_VERIFY_DEV" # cámbialo si quieres
     OWNER_WA_E164       = var.owner_wa_e164
     META_WA_SECRET_NAME = "pelvis/wa/meta-owner"
@@ -122,4 +124,54 @@ module "lambda_meta" {
     OWNER_WA_LANG       = "es_EC"
   }
   tags = local.tags
+}
+
+module "lambda_scheduler" {
+  source         = "../../modules/lambda_function"
+  project_prefix = var.project_prefix
+  function_name  = "reminder-scheduler"
+  source_dir     = "${path.root}/../../../../app"
+  handler        = "runtime/reminder_scheduler.handler"
+  env_vars = {
+    AWS_ACCOUNT_ID          = data.aws_caller_identity.current.account_id
+    DDB_TABLE               = module.ddb.table_name
+    SCHEDULER_ROLE_ARN      = aws_iam_role.scheduler_invoke_role.arn
+    REMINDER_DISPATCHER_ARN = module.lambda_reminder.lambda_arn
+    ESCALATION_DELAY_MIN    = "60"
+    OWNER_WA_E164           = var.owner_wa_e164
+    META_WA_SECRET_NAME     = "pelvis/wa/meta-owner"
+    OWNER_WA_TEMPLATE       = "owner_alert"
+    OWNER_WA_LANG           = "es_EC"
+    STAGE                   = "dev"
+    FAST_MODE               = "1"
+  }
+  tags = local.tags
+}
+
+data "aws_caller_identity" "current" {}
+
+resource "aws_iam_role" "scheduler_invoke_role" {
+  name = "${var.project_prefix}-scheduler-invoke"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect    = "Allow",
+      Principal = { Service = "scheduler.amazonaws.com" },
+      Action    = "sts:AssumeRole"
+    }]
+  })
+  tags = local.tags
+}
+
+resource "aws_iam_role_policy" "scheduler_invoke_policy" {
+  name = "${var.project_prefix}-scheduler-invoke-policy"
+  role = aws_iam_role.scheduler_invoke_role.id
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect : "Allow",
+      Action : ["lambda:InvokeFunction"],
+      Resource : module.lambda_reminder.lambda_arn
+    }]
+  })
 }
