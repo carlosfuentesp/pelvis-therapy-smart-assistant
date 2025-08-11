@@ -148,6 +148,40 @@ module "lambda_scheduler" {
   tags = local.tags
 }
 
+module "layer_google" {
+  source     = "../../modules/lambda_layer"
+  layer_name = "${var.project_prefix}-google-deps"
+  source_dir = "${path.root}/../../../../layers/google"
+  tags       = local.tags
+}
+
+module "lambda_appts" {
+  source         = "../../modules/lambda_function"
+  project_prefix = var.project_prefix
+  function_name  = "appointments-manager"
+  handler        = "runtime/appointments_manager.handler"
+  source_dir     = "${path.root}/../../../../app"
+  layers         = [module.layer_google.layer_arn]
+  env_vars = {
+    GCAL_SECRET_NAME        = "pelvis/gcal/sa"
+    GCAL_CALENDAR_ID        = var.gcal_calendar_id   # agrega esta var en variables.tf
+    TZ                      = "America/Guayaquil"
+    REMINDER_SCHEDULER_NAME = "pt-dev-reminder-scheduler"
+    OWNER_WA_E164           = var.owner_wa_e164
+    META_WA_SECRET_NAME     = "pelvis/wa/meta-owner"
+    OWNER_WA_TEMPLATE       = "owner_alert"
+    OWNER_WA_LANG           = "es_EC"
+  }
+  tags = local.tags
+}
+
+# Adjunta el layer de Google a la lambda_appts
+resource "aws_lambda_function_event_invoke_config" "appts_async" {
+  function_name                = module.lambda_appts.lambda_name
+  maximum_event_age_in_seconds = 60
+  maximum_retry_attempts       = 0
+}
+
 data "aws_caller_identity" "current" {}
 
 resource "aws_iam_role" "scheduler_invoke_role" {

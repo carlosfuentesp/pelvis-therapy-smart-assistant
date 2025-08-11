@@ -19,3 +19,8 @@ variable "owner_wa_e164" {
   type    = string
   default = "+5939XXXXXXXX"
 }
+
+variable "gcal_calendar_id" {
+  type        = string
+  description = "Calendar ID de Pelvis Therapy"
+}
