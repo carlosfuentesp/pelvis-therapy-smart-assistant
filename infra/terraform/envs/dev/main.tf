@@ -115,6 +115,7 @@ module "lambda_meta" {
   function_name  = "meta-webhook"
   source_dir     = "${path.root}/../../../../app"
   handler        = "runtime/meta_webhook_handler.handler"
+  layers         = [module.layer_agents.layer_arn]
   env_vars = {
     DDB_TABLE           = module.ddb.table_name
     VERIFY_TOKEN        = "PT_VERIFY_DEV" # cámbialo si quieres
@@ -122,6 +123,7 @@ module "lambda_meta" {
     META_WA_SECRET_NAME = "pelvis/wa/meta-owner"
     OWNER_WA_TEMPLATE   = "owner_alert"
     OWNER_WA_LANG       = "es_EC"
+    PT_CONTENT_PATH     = "content/pelvis/services.yml"
   }
   tags = local.tags
 }
@@ -149,10 +151,19 @@ module "lambda_scheduler" {
 }
 
 module "layer_google" {
-  source     = "../../modules/lambda_layer"
-  layer_name = "${var.project_prefix}-google-deps"
-  source_dir = "${path.root}/../../../../layers/google"
-  tags       = local.tags
+  source          = "../../modules/lambda_layer"
+  layer_name      = "${var.project_prefix}-google-deps"
+  source_zip_path = abspath("${path.root}/../../../../tmp-google.zip")
+  s3_bucket_name  = aws_s3_bucket.layers.bucket
+  tags            = local.tags
+}
+
+module "layer_agents" {
+  source          = "../../modules/lambda_layer"
+  layer_name      = "${var.project_prefix}-agents-deps"
+  source_zip_path = abspath("${path.root}/../../../../tmp-agents.zip")
+  s3_bucket_name  = aws_s3_bucket.layers.bucket
+  tags            = local.tags
 }
 
 module "lambda_appts" {
@@ -244,3 +255,30 @@ resource "aws_iam_role_policy" "appts_secrets" {
 }
 
 data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
+
+data "aws_iam_role" "meta_role" {
+  name = "${var.project_prefix}-meta-webhook-role"
+}
+
+resource "aws_iam_role_policy" "meta_bedrock" {
+  name = "${var.project_prefix}-meta-bedrock"
+  role = data.aws_iam_role.meta_role.name
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect : "Allow",
+      Action : [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream"
+      ],
+      Resource : "*"
+    }]
+  })
+}
+
+resource "aws_s3_bucket" "layers" {
+  bucket        = "${var.project_prefix}-lambda-layers-${data.aws_caller_identity.current.account_id}-${var.region}"
+  force_destroy = true
+  tags          = local.tags
+}

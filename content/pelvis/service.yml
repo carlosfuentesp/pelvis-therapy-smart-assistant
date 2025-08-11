@@ -1,0 +1,18 @@
+centro: Pelvis Therapy
+servicios:
+  - nombre: Evaluación inicial de fisioterapia pélvica
+    duracion: 60 minutos
+    descripcion: Historia clínica, evaluación de piso pélvico y plan de tratamiento.
+  - nombre: Rehabilitación postparto
+    duracion: 50 minutos
+    descripcion: Fortalecimiento de suelo pélvico y corrección de diástasis.
+  - nombre: Tratamiento de incontinencia urinaria
+    duracion: 50 minutos
+    descripcion: Biofeedback, ejercicios hipopresivos y reeducación vesical.
+  - nombre: Dolor pélvico crónico
+    duracion: 50 minutos
+    descripcion: Terapia manual, educación y ejercicios personalizados.
+contacto:
+  direccion: Ambato, Ecuador
+  whatsapp: "+593996393404"
+  horario: "Lun-Vie 09:00-18:00"
