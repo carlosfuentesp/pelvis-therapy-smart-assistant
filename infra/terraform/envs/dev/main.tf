@@ -164,7 +164,7 @@ module "lambda_appts" {
   layers         = [module.layer_google.layer_arn]
   env_vars = {
     GCAL_SECRET_NAME        = "pelvis/gcal/sa"
-    GCAL_CALENDAR_ID        = var.gcal_calendar_id   # agrega esta var en variables.tf
+    GCAL_CALENDAR_ID        = var.gcal_calendar_id # agrega esta var en variables.tf
     TZ                      = "America/Guayaquil"
     REMINDER_SCHEDULER_NAME = "pt-dev-reminder-scheduler"
     OWNER_WA_E164           = var.owner_wa_e164
@@ -181,8 +181,6 @@ resource "aws_lambda_function_event_invoke_config" "appts_async" {
   maximum_event_age_in_seconds = 60
   maximum_retry_attempts       = 0
 }
-
-data "aws_caller_identity" "current" {}
 
 resource "aws_iam_role" "scheduler_invoke_role" {
   name = "${var.project_prefix}-scheduler-invoke"
@@ -209,3 +207,40 @@ resource "aws_iam_role_policy" "scheduler_invoke_policy" {
     }]
   })
 }
+
+# Descubre el rol creado por el módulo de appointments
+data "aws_iam_role" "appts_role" {
+  name = "${var.project_prefix}-appointments-manager-role"
+}
+
+# Política para permitir invocar al scheduler
+resource "aws_iam_role_policy" "appts_invoke_scheduler" {
+  name = "${var.project_prefix}-appts-invoke-scheduler"
+  role = data.aws_iam_role.appts_role.name
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect   = "Allow",
+      Action   = ["lambda:InvokeFunction"],
+      Resource = module.lambda_scheduler.lambda_arn
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "appts_secrets" {
+  name = "${var.project_prefix}-appts-secrets"
+  role = data.aws_iam_role.appts_role.name
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect : "Allow",
+      Action : ["secretsmanager:GetSecretValue"],
+      Resource : [
+        "arn:aws:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:pelvis/gcal/sa-*",
+        "arn:aws:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:pelvis/wa/meta-owner-*"
+      ]
+    }]
+  })
+}
+
+data "aws_caller_identity" "current" {}
