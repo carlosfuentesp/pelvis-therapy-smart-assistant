@@ -105,8 +105,8 @@ def handler(event, context):
         appt_dt = dt.datetime.fromisoformat(appt_iso.replace("Z", "+00:00")).astimezone(
             dt.timezone.utc
         )
-    except Exception:
-        logger.exception("Invalid appt_time_iso: %s", appt_iso)
+    except ValueError as e:
+        logger.exception("Invalid appt_time_iso %s: %s", appt_iso, e)
         raise
 
     # Tiempos (modo normal vs. modo rápido de pruebas)

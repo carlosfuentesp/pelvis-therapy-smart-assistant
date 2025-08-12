@@ -46,13 +46,13 @@ def _post_messages(payload: dict) -> dict:
             logger.info("WA resp: %s", txt)
             try:
                 return {"ok": True, "resp": json.loads(txt)}
-            except Exception:
+            except json.JSONDecodeError:
                 return {"ok": True, "resp_text": txt}
     except urllib.error.HTTPError as e:
         err = e.read().decode("utf-8") if e.fp else str(e)
         logger.error("WA error %s: %s", e.code, err)
         return {"ok": False, "status": e.code, "error": err}
-    except Exception as e:
+    except urllib.error.URLError as e:
         logger.exception("WA error: %s", e)
         return {"ok": False, "error": str(e)}
 
