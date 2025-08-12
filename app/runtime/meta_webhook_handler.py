@@ -5,7 +5,9 @@ import logging
 import os
 
 import boto3
+import botocore.exceptions as bex
 from boto3.dynamodb.conditions import Key
+import urllib.error
 from tools.whatsapp_owner import send_owner_template, send_text
 from agents.router import handle_message
 
@@ -56,8 +58,8 @@ def _mark_confirmed_and_cancel(phone_e164: str):
             ScanIndexForward=True,  # más cercana primero
         )
         items = resp.get("Items", [])
-    except Exception:
-        logger.exception("DDB query failed for patient %s", phone_e164)
+    except bex.ClientError as e:
+        logger.exception("DDB query failed for patient %s: %s", phone_e164, e.response)
         return False, None
 
     if not items:
@@ -71,8 +73,10 @@ def _mark_confirmed_and_cancel(phone_e164: str):
             ExpressionAttributeNames={"#st": "status"},
             ExpressionAttributeValues={":c": now_iso, ":s": "confirmed"},
         )
-    except Exception:
-        logger.exception("DDB update failed to mark confirmed for %s", appt.get("pk"))
+    except bex.ClientError as e:
+        logger.exception(
+            "DDB update failed to mark confirmed for %s: %s", appt.get("pk"), e.response
+        )
         # seguimos intentando cancelar schedules igualmente
 
     # Cancela R2/ESC si estaban programados
@@ -82,8 +86,8 @@ def _mark_confirmed_and_cancel(phone_e164: str):
             try:
                 scheduler.delete_schedule(Name=name)
                 logger.info("Deleted schedule %s", name)
-            except Exception as e:
-                logger.warning("delete_schedule %s failed: %s", name, e)
+            except bex.ClientError as e:
+                logger.warning("delete_schedule %s failed: %s", name, e.response)
 
     return True, appt
 
@@ -112,8 +116,8 @@ def handler(event, context):
 
     try:
         body = json.loads(raw_body)
-    except Exception:
-        logger.exception("JSON parse error")
+    except json.JSONDecodeError as e:
+        logger.exception("JSON parse error: %s", e)
         return _ok("ignored")
 
     logger.info("Incoming Meta payload: %s", json.dumps(body)[:2000])
@@ -147,36 +151,32 @@ def handler(event, context):
                         fecha_hora="N/A",
                         estado=f"mensaje entrante: {text[:80]}",
                     )
-                except Exception:
-                    logger.exception("Owner notification failed")
+                except urllib.error.URLError as e:
+                    logger.exception("Owner notification failed: %s", e)
 
                 # 2.2 Confirmación por palabras clave
                 if normalized in {"si", "sí", "si.", "sí.", "ok", "listo", "confirmo", "confirmar"}:
                     ok, appt = _mark_confirmed_and_cancel(user_e164)
                     if ok:
+                        reply = handle_message(text)
                         try:
-                            try:
-                                reply = handle_message(text)
-                                send_text(user_e164, reply)
-                            except Exception:
-                                logger.exception("Router failed")
-                                send_text(
-                                    user_e164,
-                                    "¡Hola! Soy el asistente de Pelvis Therapy. ¿En qué te ayudo?",
-                                )
+                            send_text(user_e164, reply)
                             # Aviso opcional a propietaria
                             send_owner_template(
                                 paciente=user_e164,
                                 fecha_hora=appt.get("appt_time_iso", "N/A"),
                                 estado="Paciente confirmó",
                             )
-                        except Exception:
-                            logger.exception("Post-confirmation messages failed")
+                        except urllib.error.URLError as e:
+                            logger.exception("Post-confirmation messages failed: %s", e)
                     else:
-                        send_text(
-                            user_e164,
-                            "Gracias. No encontré una cita pendiente. Si deseas agendar, cuéntame tu disponibilidad.",
-                        )
+                        try:
+                            send_text(
+                                user_e164,
+                                "Gracias. No encontré una cita pendiente. Si deseas agendar, cuéntame tu disponibilidad.",
+                            )
+                        except urllib.error.URLError as e:
+                            logger.exception("No-appointment reply failed: %s", e)
                 else:
                     # 2.3 Auto-respuesta básica (MVP)
                     try:
@@ -185,7 +185,7 @@ def handler(event, context):
                             "¡Hola! Soy el asistente de Pelvis Therapy. "
                             "Puedo ayudarte a agendar/confirmar tu cita. Escribe 'SI' para confirmar.",
                         )
-                    except Exception:
-                        logger.exception("Auto-reply failed")
+                    except urllib.error.URLError as e:
+                        logger.exception("Auto-reply failed: %s", e)
 
     return _ok()
